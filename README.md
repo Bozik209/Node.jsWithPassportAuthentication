@@ -4,6 +4,9 @@ This is a user login and registration app using Node.js, Express, Passport, Mong
 
 
 ### Usage
+```sh
+$ npm i express bcryptjs passport passport-local ejs express-ejs-layouts mongoose connect-flash express-session
+```
 
 ```sh
 $ npm install

@@ -1,5 +1,10 @@
 const express = require("express");
 const router = express.Router();
+const bcrypt = require("bcryptjs");
+const passpord = require("passport");
+
+// User model
+const User = require("../models/User");
 
 // Login Page
 router.get("/login", (req, res) => res.render("login")); //views/login.ejs
@@ -28,6 +33,7 @@ router.post("/register", (req, res) => {
   }
 
   if (errors.length > 0) {
+    console.log(errors);
     res.render("register", {
       errors,
       name,
@@ -36,8 +42,66 @@ router.post("/register", (req, res) => {
       password2,
     });
   } else {
-    res.send("pass");
+    // mongoose Validation passed
+    User.findOne({ email: email }).then((user) => {
+      if (user) {
+        // User exists
+        errors.push({ msg: "Email is aleready registered" });
+        console.log(errors);
+
+        res.render("register", {
+          errors,
+          name,
+          email,
+          password,
+          password2,
+        });
+      } else {
+        // create user mongoose
+        const newUser = new User({
+          name,
+          email,
+          password,
+        });
+
+        // Hash password
+        bcrypt.genSalt(10, (err, salt) => {
+          bcrypt.hash(newUser.password, salt, (err, hash) => {
+            if (err) throw err;
+            // Set password to hashed
+            newUser.password = hash;
+            // Save user in mongoose
+            newUser
+              .save()
+              .then((user) => {
+                req.flash(
+                  "success_msg",
+                  "You are now registered and can log in"
+                );
+                res.redirect("/login");
+              })
+              .catch((err) => console.log(err));
+          });
+        });
+      }
+    });
   }
+});
+
+// Login Handle
+router.post("/login", (req, res, next) => {
+  passpord.authenticate("local", {
+    successRedirect: "/dashboard",
+    failureRedirect: "/user/login",
+    failureFlash: true,
+  })(req, res, next);
+});
+
+// Logout Handle
+router.get("/logout", (req, res) => {
+  req.logout();
+  req.flash("success_msg", "you are logged out");
+  res.redirect("/user/login");
 });
 
 module.exports = router;
